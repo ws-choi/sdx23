@@ -4,5 +4,21 @@
 # python run.py experiment=example_simple.yaml
 
 defaults:
-  - override /callbacks: wandb
-  - override /logger: wandb
+  - override /callbacks: default
+  - override /logger: tensorboard
+
+
+callbacks:
+  early_stopping:
+    patience: 1000000
+
+datamodule:
+  external_datasets:
+    - test
+
+trainer:
+  max_epochs: 1000000
+  accelerator: cuda
+  amp_backend: native
+  precision: 16
+  track_grad_norm: 2

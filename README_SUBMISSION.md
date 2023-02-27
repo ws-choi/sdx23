@@ -2,20 +2,9 @@
 
 ## Submission Summary
 
-### Leaderboard A
-* Submission ID: 151907
-* Submitter: kim_min_seok
-* Final rank: 2nd place on leaderboard A
-* Final scores on MDXDB21:
-
-  | SDR_song | SDR_bass | SDR_drums | SDR_other | SDR_vocals |
-  | :------: | :------: | :-------: | :-------: | :--------: |
-  |   7.24   |   7.23   |   7.17    |   5.64    |    8.90    |
-
-### Leaderboard B
 * Submission ID: 151249
 * Submitter: kim_min_seok
-* Final rank: 3nd place on leaderboard A
+* Final rank: 3rd place on leaderboard B
 * Final scores on MDXDB21:
 
 
@@ -27,7 +16,7 @@
 ## Model Summary
 
 * Data
-  * We used the MusDB default 86/14 train and validation splits.
+  * We used the MusDB default 14 track validation set for validation, and the other 136 tracks for training.
   * Augmentation
     * Random chunking and mixing sources from different tracks ([1])
     * Pitch shift and time stretch ([2])
@@ -42,11 +31,9 @@
       * No densely connected convolutional blocks
       * Multiplicative skip connections
       * Increased depth and number of hidden channels
-    * After training the per-source models we trained an additional network (which we call the 'Mixer') on top of the model outputs, which takes all four estimated sources as input and outputs better estimated sources
-      * We only tried a single 1x1 convolution layer for the Mixer (due to inference time limit), but still gained at least 0.1 SDR for every source on the MDX test set.
-      * Mixer is trained without fine-tuning the separation models.
+    > note: our final submission for leaderboard B was submitted before training converged, and the learning rate might have not been optimal as well. Furthermore, the bass separation model doesn't even use external data.
   * Demucs
-    * we used the pretrained model with 64 initial hidden channels (not demucs48_hq)
+    * we used the pretrained model with extra data (demucs_extra)
     * overlap=0.5 and no shift trick
   * blending parameters (TFC-TDF : Demucs) => bass 5:5, drums 5:5, other 7:3, vocals 9:1
 
@@ -65,22 +52,19 @@
 
 ***Note***: The inference time is very close to the time limit, so submission will randomly fail. You might have to submit it several times.
 
-- obtain ```.onnx``` files and ```.pt``` file as described in the [following section](#how-to-reproduce-the-training)
+- obtain ```.onnx``` files as described in the [following section](#how-to-reproduce-the-training)
 - follow this instruction to deploy parameters
     ```
     git clone https://github.com/kuielab/mdx-net-submission.git
     cd mdx-net-submission
-    git checkout leaderboard_A
+    git checkout leaderboard_B
     git lfs install
     mv ${*.onnx} onnx/
-    mv ${*.pt} model/  
     ```
-- or visit the following links that hold the pretrained ```.onnx``` files and ```.pt``` file
-  - [Leaderboard A](https://github.com/kuielab/mdx-net-submission/tree/leaderboard_A)
+- or visit the following links that hold the pretrained ```.onnx``` files.
   - [Leaderboard B](https://github.com/kuielab/mdx-net-submission/tree/leaderboard_B)
 
 - or visit the submitted repository
-  - [Leaderboard A](https://gitlab.aicrowd.com/kim_min_seok/demix/tree/submission133)
   - [Leaderboard B](https://gitlab.aicrowd.com/kim_min_seok/demix/tree/submission106)
 
 
@@ -91,10 +75,9 @@
 Pitch Shift and Time Stretch [2]
 - This could have been done on-the-fly along with chunking and mixing ([1]), but we preferred faster train steps over less disk usage. The following scripts are for saving augmented tracks to disk before training. 
 
-- For Leaderboard A
-    - run ```python src/utils/data_augmentation.py --data_dir ${your_musdb_path} --train True --valid False --test False```
 - For Leaderboard B
-    - run ```python src/utils/data_augmentation.py --data_dir ${your_musdb_path} --train True --valid True --test True``` 
+    - run ```python src/utils/data_augmentation.py --data_dir ${your_musdb_path} --train True --test True``` 
+    - (takes 3~4 hours)
 
 ### 2. Phase 1
 
@@ -102,9 +85,7 @@ Pitch Shift and Time Stretch [2]
   - vocals: ```python run.py experiment=multigpu_vocals model=ConvTDFNet_vocals```
   - drums: ```python run.py experiment=multigpu_drums model=ConvTDFNet_drums```
   - bass: ```python run.py experiment=multigpu_bass model=ConvTDFNet_bass```
-  - other: ```python run.py experiment=multigpu_other model=ConvTDFNet_other```
-
-- For training, each takes at least 3 days, usually 4~5 days to early-stop for the current configurations. 
+  - other: ```python run.py experiment=multigpu_other model=ConvTDFNet_other``` 
   
 - Default logging system is [wandb](https://www.wandb.com/)
   ![](val_loss_vocals.png)  
@@ -118,30 +99,11 @@ Pitch Shift and Time Stretch [2]
     - see [this](https://github.com/kuielab/mdx-net/blob/7c6f7daecde13c0e8ed97f308577f6690b0c31af/configs/callbacks/default.yaml#L18)
     - and [this](https://github.com/kuielab/mdx-net/blob/7c6f7daecde13c0e8ed97f308577f6690b0c31af/src/callbacks/onnx_callback.py#L11)
 
-#### The epoch of each checkpoint we used  
-- Leaderboard A
-    - vocals: 2360 epoch
-    - bass: 1720 epoch
-    - drums: 600 epoch
-    - other: 1720 epoch
+- After training the 4 models, rename the best ```.onnx``` files to '{source_name}.onnx' for each source ('vocals.onnx', 'bass.onnx', etc.), then copy them to the 'onnx' directory in the [submission repository](https://github.com/kuielab/mdx-net-submission/tree/leaderboard_B/model)
 
-- Leaderboard B
-    - vocals: 1960 epoch
-    - bass: 1200 epoch
-    - drums: 940 epoch
-    - other: 1660 epoch
+### 3. Phase 2
 
-> note: the models were submitted before convergence, and the learning rate might have not been optimal as well (ex. for 'other', Leaderboard A score is higher)
-
-### 3. Phase 2 (Optional)
-
-This phase **does not fine-tune** the pretrained separators from the previous phase.
-
-- Train Mixer
-  - locate candidate checkpoints by appending ```ckpt``` variable in the ```yaml``` config file.
-  - train ```from src.models.mdxnet Mixer ```
-  - save ```.pt```, the only learnable parameters in ```Mixer```
-
+We did not train ```Mixer``` for the model used in Leaderboard B.
 
 # License
 

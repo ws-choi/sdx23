@@ -37,14 +37,16 @@ class MusdbDataModule(LightningDataModule):
             num_workers: int,
             pin_memory: bool,
             external_datasets,
+            mode: str,
             **kwargs,
     ):
         super().__init__()
 
         self.data_dir = Path(data_dir)
+        assert mode in str(self.data_dir), 'There is a mismatch between datamodule and data_path. check your .env.'
         self.target_name = target_name
         self.aug_params = aug_params
-        self.external_datasets = external_datasets
+        self.external_datasets = external_datasets if external_datasets is not None else []
 
         self.batch_size = batch_size
         self.num_workers = num_workers
@@ -62,29 +64,22 @@ class MusdbDataModule(LightningDataModule):
         self.data_val: Optional[Dataset] = None
         self.data_test: Optional[Dataset] = None
 
-        trainset_path = self.data_dir.joinpath('train')
-        validset_path = self.data_dir.joinpath('valid')
+        self.valid_track_names = kwargs['validation_set']
 
-        # create validation split
-        if not exists(validset_path):
-            from shutil import move
-            os.mkdir(validset_path)
-            for track in kwargs['validation_set']:
-                if trainset_path.joinpath(track).exists():
-                    move(trainset_path.joinpath(track), validset_path.joinpath(track))
-        else:
-            valid_files = os.listdir(validset_path)
-            assert set(valid_files) == set(kwargs['validation_set'])
+        for track in self.valid_track_names:
+            assert self.data_dir.joinpath(track).exists()
 
     def setup(self, stage: Optional[str] = None):
         """Load data. Set variables: self.data_train, self.data_val, self.data_test."""
         self.data_train = MusdbTrainDataset(self.data_dir,
+                                            self.valid_track_names,
                                             self.chunk_size,
                                             self.target_name,
                                             self.aug_params,
                                             self.external_datasets)
 
         self.data_val = MusdbValidDataset(self.data_dir,
+                                          self.valid_track_names,
                                           self.chunk_size,
                                           self.target_name,
                                           self.overlap,

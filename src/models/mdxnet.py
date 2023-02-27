@@ -15,7 +15,7 @@ from src.utils.utils import sdr
 class AbstractMDXNet(LightningModule):
     __metaclass__ = ABCMeta
 
-    def __init__(self, target_name, lr, optimizer, dim_c, dim_f, dim_t, n_fft, hop_length, overlap, ckpt):
+    def __init__(self, target_name, lr, optimizer, dim_c, dim_f, dim_t, n_fft, hop_length, overlap):
         super().__init__()
         self.target_name = target_name
         self.lr = lr
@@ -28,13 +28,11 @@ class AbstractMDXNet(LightningModule):
         self.hop_length = hop_length
 
         self.chunk_size = hop_length * (self.dim_t - 1)
+        self.inference_chunk_size = hop_length * (self.dim_t*2 - 1)
         self.overlap = overlap
         self.window = nn.Parameter(torch.hann_window(window_length=self.n_fft, periodic=True), requires_grad=False)
-        self.freq_pad = nn.Parameter(torch.zeros([1, dim_c, self.n_bins - self.dim_f, self.dim_t]), requires_grad=False)
-        self.input_sample_shape = (self.stft(torch.zeros([1, 2, self.chunk_size]))).shape
-
-        if ckpt is not None:
-            self.load_from_checkpoint(ckpt)
+        self.freq_pad = nn.Parameter(torch.zeros([1, dim_c, self.n_bins - self.dim_f, 1]), requires_grad=False)
+        self.inference_chunk_shape = (self.stft(torch.zeros([1, 2, self.inference_chunk_size]))).shape
 
     def configure_optimizers(self):
         if self.optimizer == 'rmsprop':
@@ -79,26 +77,28 @@ class AbstractMDXNet(LightningModule):
         return {'loss': score}
 
     def stft(self, x):
-        x = x.reshape([-1, self.chunk_size])
+        dim_b = x.shape[0]
+        x = x.reshape([dim_b * 2, -1])
         x = torch.stft(x, n_fft=self.n_fft, hop_length=self.hop_length, window=self.window, center=True)
         x = x.permute([0, 3, 1, 2])
-        x = x.reshape([-1, 2, 2, self.n_bins, self.dim_t]).reshape([-1, self.dim_c, self.n_bins, self.dim_t])
+        x = x.reshape([dim_b, 2, 2, self.n_bins, -1]).reshape([dim_b, self.dim_c, self.n_bins, -1])
         return x[:, :, :self.dim_f]
 
-    def istft(self, spec):
-        spec = torch.cat([spec, self.freq_pad.repeat([spec.shape[0], 1, 1, 1])], -2)
-        spec = spec.reshape([-1, 2, 2, self.n_bins, self.dim_t]).reshape([-1, 2, self.n_bins, self.dim_t])
-        spec = spec.permute([0, 2, 3, 1])
-        spec = torch.istft(spec, n_fft=self.n_fft, hop_length=self.hop_length, window=self.window, center=True)
-        return spec.reshape([-1, 2, self.chunk_size])
+    def istft(self, x):
+        dim_b = x.shape[0]
+        x = torch.cat([x, self.freq_pad.repeat([x.shape[0], 1, 1, x.shape[-1]])], -2)
+        x = x.reshape([dim_b, 2, 2, self.n_bins, -1]).reshape([dim_b * 2, 2, self.n_bins, -1])
+        x = x.permute([0, 2, 3, 1])
+        x = torch.istft(x, n_fft=self.n_fft, hop_length=self.hop_length, window=self.window, center=True)
+        return x.reshape([dim_b, 2, -1])
 
 
 class ConvTDFNet(AbstractMDXNet):
     def __init__(self, target_name, lr, optimizer, dim_c, dim_f, dim_t, n_fft, hop_length,
-                 num_blocks, l, g, k, bn, bias, overlap, ckpt):
+                 num_blocks, l, g, k, bn, bias, overlap):
 
         super(ConvTDFNet, self).__init__(
-            target_name, lr, optimizer, dim_c, dim_f, dim_t, n_fft, hop_length, overlap, ckpt)
+            target_name, lr, optimizer, dim_c, dim_f, dim_t, n_fft, hop_length, overlap)
         self.save_hyperparameters()
 
         self.num_blocks = num_blocks
@@ -170,7 +170,7 @@ class ConvTDFNet(AbstractMDXNet):
 
         for i in range(self.n):
             x = self.us[i](x)
-            x *= ds_outputs[-i - 1]
+            x = x * ds_outputs[-i - 1]
             x = self.decoding_blocks[i](x)
 
         x = x.transpose(-1, -2)

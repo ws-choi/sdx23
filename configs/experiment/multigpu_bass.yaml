@@ -5,22 +5,19 @@
 
 defaults:
   - multigpu_default
+  - override /model: ConvTDFNet_bass.yaml
 
 seed: 2021
 
 logger:
   wandb:
-    name: 'mdx_bass'
+    name: 'mdx_bass_Bval5'
 
 trainer:
-  gpus: '0,1,2'
+  gpus: '2,3'
 
 datamodule:
   batch_size: 8
   num_workers: 8
   pin_memory: False
   overlap: 8192
-
-callbacks:
-  early_stopping:
-    patience: 500

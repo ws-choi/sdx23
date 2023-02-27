@@ -5,22 +5,20 @@
 
 defaults:
   - multigpu_default
+  - override /model: ConvTDFNet_vocals.yaml
 
 seed: 2021
 
 logger:
   wandb:
-    name: 'mdx_vocals'
+    name: 'mdx_vocals_Bval5'
 
 trainer:
-  gpus: '0,1,2,3'
+  gpus: '0,1'
+  #resume_from_checkpoint: "/home/ielab/PycharmProjects/mdx-net/logs/runs/vocals/2021-10-29/14-46-43/checkpoints/last.ckpt"
 
 datamodule:
-  batch_size: 16
+  batch_size: 8
   num_workers: 8
   pin_memory: False
   overlap: 3072
-
-callbacks:
-  early_stopping:
-    patience: 500

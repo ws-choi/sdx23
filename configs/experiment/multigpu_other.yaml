@@ -5,12 +5,13 @@
 
 defaults:
   - multigpu_default
+  - override /model: ConvTDFNet_other.yaml
 
 seed: 2021
 
 logger:
   wandb:
-    name: 'mdx_other'
+    name: 'mdx_other_Bval5'
 
 trainer:
   gpus: '0,1'
@@ -20,7 +21,3 @@ datamodule:
   num_workers: 8
   pin_memory: False
   overlap: 4096
-
-callbacks:
-  early_stopping:
-    patience: 500
