@@ -2,6 +2,8 @@
 defaults:
   - musdb18_hq
 
+data_dir: ${label_noise_data_dir}
+
 has_split_structure: False
 
 validation_set:

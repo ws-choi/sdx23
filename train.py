@@ -11,7 +11,7 @@ from src.utils import print_config_tree
 dotenv.load_dotenv(override=True)
 
 
-@hydra.main(config_path="configs/", config_name="config.yaml")
+@hydra.main(config_path="configs/", config_name="config.yaml", version_base='1.1')
 def main(config: DictConfig):
 
     # Imports should be nested inside @hydra.main to optimize tab completion

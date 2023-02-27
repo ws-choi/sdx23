@@ -1,7 +1,7 @@
 _target_: src.datamodules.musdb_datamodule.MusdbDataModule
 
 # data_dir is specified in config.yaml
-data_dir: ${data_dir}
+data_dir: null
 
 # chunk_size = (hop_length * (dim_t - 1) / sample_rate) secs
 sample_rate: 44100

@@ -27,7 +27,8 @@ defaults:
 #output_dir: ${hydra:runtime.output_dir}
 
 # path to folder with data
-data_dir: ${oc.env:data_dir}
+label_noise_data_dir: ${oc.env:label_noise_data_dir}
+bleeding_data_dir: ${oc.env:bleeding_data_dir}
 
 # use `python run.py debug=true` for easy debugging!
 # this will run 1 train, val and test loop with only 1 batch

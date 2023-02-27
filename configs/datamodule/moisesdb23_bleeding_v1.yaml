@@ -4,6 +4,8 @@ defaults:
 
 has_split_structure: False
 
+data_dir: ${bleeding_data_dir}
+
 validation_set:
   - 014f3712-293b-42af-9f29-0ed1785be792
   - 25789239-1075-43b9-bfc9-51dff4a29590
