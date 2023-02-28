@@ -107,7 +107,7 @@ class MusdbTrainDataset(MusdbDataset):
                               track_length=track_length, chunk_size=self.chunk_size)
             sources.append(source)
 
-        mix = sum(sources)
+        mix = torch.stack(sources).sum(0)
 
         if self.target_name == 'all':
             # Targets for models that separate all four sources (ex. Demucs).
@@ -116,7 +116,7 @@ class MusdbTrainDataset(MusdbDataset):
         else:
             target = sources[self.source_names.index(self.target_name)]
 
-        return torch.tensor(mix), torch.tensor(target)
+        return mix, target # torch.tensor(mix), torch.tensor(target)
 
     def __len__(self):
         return self.epoch_size
@@ -150,14 +150,17 @@ class MusdbValidDataset(MusdbDataset):
         target = sources[self.target_name]
 
         chunk_output_size = self.chunk_size - 2 * self.overlap
-        left_pad = np.zeros([2, self.overlap])
-        right_pad = np.zeros([2, self.overlap + chunk_output_size - (mix.shape[-1] % chunk_output_size)])
-        mix_padded = np.concatenate([left_pad, mix, right_pad], 1)
+        # left_pad = np.zeros([2, self.overlap])
+        # right_pad = np.zeros([2, self.overlap + chunk_output_size - (mix.shape[-1] % chunk_output_size)])
+        left_pad = self.overlap
+        right_pad = self.overlap + chunk_output_size - (mix.shape[-1] % chunk_output_size)
+
+        mix_padded = torch.nn.functional.pad(mix, (left_pad, right_pad))
 
         num_chunks = mix_padded.shape[-1] // chunk_output_size
         mix_chunks = [mix_padded[:, i * chunk_output_size: i * chunk_output_size + self.chunk_size]
                       for i in range(num_chunks)]
-        mix_chunk_batches = torch.tensor(mix_chunks, dtype=torch.float32).split(self.batch_size)
+        mix_chunk_batches = torch.stack(mix_chunks).split(self.batch_size)
         return mix_chunk_batches, torch.tensor(target)
 
     def __len__(self):

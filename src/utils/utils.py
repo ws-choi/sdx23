@@ -6,11 +6,14 @@ from typing import Callable, List
 import hydra
 import numpy as np
 import soundfile as sf
+import torch
+import torchaudio
 import wandb
 from omegaconf import DictConfig, OmegaConf
 from pytorch_lightning import Callback
 from pytorch_lightning.loggers import Logger
 from pytorch_lightning.utilities import rank_zero_only
+from torchaudio.backend.soundfile_backend import load
 
 from src.utils import pylogger, rich_utils
 
@@ -230,10 +233,16 @@ def sdr(est, ref):
 
 def load_wav(path, track_length=None, chunk_size=None):
     if track_length is None:
-        return sf.read(path, dtype='float32')[0].T
+        audio = load(path)[0]
+        if audio.dtype != torch.float32:
+            audio = audio.to(torch.float32)
+        return audio ## sf.read(path, dtype='float32')[0].T
     else:
         s = np.random.randint(track_length - chunk_size)
-        return sf.read(path, dtype='float32', start=s, frames=chunk_size)[0].T
+        audio = load(path, frame_offset=s, num_frames=chunk_size)[0]
+        if audio.dtype != torch.float32:
+            audio = audio.to(torch.float32)
+        return audio # sf.read(path, dtype='float32', start=s, frames=chunk_size)[0].T
 
 
 @rank_zero_only
