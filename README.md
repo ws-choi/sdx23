@@ -50,8 +50,8 @@ wandb_api_key=[YOUR WANDB API KEY] # go wandb.ai/settings and copy your key
 ### 2. Installation
 
 ```bash
-conda env create -f conda_env_gpu.yaml -n mdx-net
-conda activate mdx-net
+conda env create -f conda_env_gpu.yaml -n mdx-net-sdx23
+conda activate mdx-net-sdx233
 pip install -r requirements.txt
 ```
 

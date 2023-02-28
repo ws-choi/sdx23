@@ -11,10 +11,7 @@ dependencies:
   - cudatoolkit
   - pytorch=1.13.1
   - torchvision=0.14.1
-  - torchaudio
-  - jupyter
   - ffmpeg==4.3
-  - onnxruntime
 
   - pip:
       - -r requirements.txt
