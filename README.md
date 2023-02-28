@@ -34,8 +34,8 @@ Also, you ***must*** create .env file by copying .env.sample to set environmenta
 # Download datasets and link paths to these variables
 # https://www.aicrowd.com/challenges/sound-demixing-challenge-2023/problems/music-demixing-track-mdx-23/dataset_files
 
-label_noise_data_dir="/home/git/moisesdb23_labelnoise_v1.0/"
-bleeding_data_dir="/home/git/moisesdb23_bleeding_v1.0/"
+label_noise_data_dir="/home/yourhome/moisesdb23_labelnoise_v1.0/"
+bleeding_data_dir="/home/yourhome/moisesdb23_bleeding_v1.0/"
 
 # You don't have to fill this if you want to use tensorboard only.
 wandb_api_key=[YOUR WANDB API KEY] # go wandb.ai/settings and copy your key
