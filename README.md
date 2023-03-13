@@ -155,6 +155,54 @@ git tag -am "submission-mdx-label-noise" "submission-mdx-label-noise"
 git push
 ```
 
+#### B. for bleeding
+
+1. Please fork this [repository](https://gitlab.aicrowd.com/Woosung.Choi.Sony/sdx-2023-music-demixing-track-starter-kit) and set up.
+    ```commandline
+    git clone https://gitlab.aicrowd.com/[YourGitLabAccount]/sdx-2023-music-demixing-track-starter-kit
+    cd sdx-2023-music-demixing-track-starter-kit
+    git checkout bleeding
+    ls models/mdx-net-bleeding/vocals/
+    ```
+2. it should give
+    ```commandline
+    config.yaml  epoch=744.ckpt
+    ```
+3. you can add your own checkpoints, like this
+
+```commandline
+config.yaml  epoch=744.ckpt epoch=00.ckpt
+```
+
+4. open `sdx-2023-music-demixing-track-starter-kit/my_submission/mdxnet_bleeding_music_separation_model.py` and link checkpoints.
+
+```python
+    def __init__(self):
+        self.separator = torch.nn.ModuleDict(
+            {
+                'vocals': get_model(root_dir='./models/mdx-net-labelnoise/vocals', ckpt_path='epoch=00.ckpt'),
+                #'vocals': get_model(root_dir='./models/mdx-net-bleeding/vocals', ckpt_path='epoch=744.ckpt'),
+                'bass': get_model(root_dir='./models/mdx-net-bleeding/bass', ckpt_path='epoch=995.ckpt'),
+                'drums': get_model(root_dir='./models/mdx-net-bleeding/drums', ckpt_path='epoch=780.ckpt'),
+                'other': get_model(root_dir='./models/mdx-net-bleeding/other', ckpt_path='epoch=437.ckpt')
+            }
+        )
+```
+
+5. don't forget use git-lfs to upload them to your own repository
+
+```commandline
+git lfs track models/mdx-net-bleeding/vocals/epoch\=00.ckpt
+git add .gitattributes
+```
+
+6. commit and submit it to aicrowd!
+
+```commandline
+git tag -am "submission-mdx-bleeding" "submission-mdx-bleeding" 
+git push
+```
+
 # ACKNOWLEDGEMENT
 
 - This repository is based on [Lightning-Hydra Template](https://github.com/ashleve/lightning-hydra-template)
